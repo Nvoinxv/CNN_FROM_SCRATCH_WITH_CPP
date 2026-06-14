@@ -24,4 +24,3 @@ BroadcastingTensor ReLU::backward(
 
     return BroadcastingTensor(input.shape(), grad_input_data);
 }
-)
