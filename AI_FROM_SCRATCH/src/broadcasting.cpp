@@ -65,3 +65,69 @@ BroadcastingTensor BroadcastingTensor::add(
     }
     return BroadcastingTensor(result_shape, result_data);
 }
+
+BroadcastingTensor BroadcastingTensor::operator+(const BroadcastingTensor& other) const {
+    return this->add(other);
+}
+
+BroadcastingTensor BroadcastingTensor::operator-(const BroadcastingTensor& other) const {
+    if (shape_ == other.shape()) {
+        std::vector<float> result_data(data_.size());
+        for (size_t i = 0; i < data_.size(); ++i) {
+            result_data[i] = data_[i] - other.data()[i];
+        }
+        return BroadcastingTensor(shape_, result_data);
+    }
+    std::vector<int> result_shape = broadcast_shape(shape_, other.shape());
+    std::vector<float> result_data(size(), 0.0f);
+    for (int i = 0; i < size(); ++i) {
+        int idx1 = (i % shape_[0]) * (shape_[0] / result_shape[0]);
+        int idx2 = (i % other.shape()[0]) * (other.shape()[0] / result_shape[0]);
+        result_data[i] = data_[idx1] - other.data()[idx2];
+    }
+    return BroadcastingTensor(result_shape, result_data);
+}
+
+BroadcastingTensor BroadcastingTensor::operator*(const BroadcastingTensor& other) const {
+    if (shape_ == other.shape()) {
+        std::vector<float> result_data(data_.size());
+        for (size_t i = 0; i < data_.size(); ++i) {
+            result_data[i] = data_[i] * other.data()[i];
+        }
+        return BroadcastingTensor(shape_, result_data);
+    }
+    if (other.size() == 1) {
+        float scalar = other.data()[0];
+        std::vector<float> result_data(data_.size());
+        for (size_t i = 0; i < data_.size(); ++i) {
+            result_data[i] = data_[i] * scalar;
+        }
+        return BroadcastingTensor(shape_, result_data);
+    }
+    std::vector<int> result_shape = broadcast_shape(shape_, other.shape());
+    std::vector<float> result_data(size(), 0.0f);
+    for (int i = 0; i < size(); ++i) {
+        int idx1 = (i % shape_[0]) * (shape_[0] / result_shape[0]);
+        int idx2 = (i % other.shape()[0]) * (other.shape()[0] / result_shape[0]);
+        result_data[i] = data_[idx1] * other.data()[idx2];
+    }
+    return BroadcastingTensor(result_shape, result_data);
+}
+
+BroadcastingTensor BroadcastingTensor::operator/(const BroadcastingTensor& other) const {
+    if (shape_ == other.shape()) {
+        std::vector<float> result_data(data_.size());
+        for (size_t i = 0; i < data_.size(); ++i) {
+            result_data[i] = data_[i] / other.data()[i];
+        }
+        return BroadcastingTensor(shape_, result_data);
+    }
+    std::vector<int> result_shape = broadcast_shape(shape_, other.shape());
+    std::vector<float> result_data(size(), 0.0f);
+    for (int i = 0; i < size(); ++i) {
+        int idx1 = (i % shape_[0]) * (shape_[0] / result_shape[0]);
+        int idx2 = (i % other.shape()[0]) * (other.shape()[0] / result_shape[0]);
+        result_data[i] = data_[idx1] / other.data()[idx2];
+    }
+    return BroadcastingTensor(result_shape, result_data);
+}

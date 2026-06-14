@@ -37,6 +37,12 @@ public:
     BroadcastingTensor add(
         const BroadcastingTensor& other
     ) const;
+
+    // OPERATOR OVERLOADING UNTUK ELEMENET-WISE MATH
+    BroadcastingTensor operator+(const BroadcastingTensor& other) const;
+    BroadcastingTensor operator-(const BroadcastingTensor& other) const;
+    BroadcastingTensor operator*(const BroadcastingTensor& other) const;
+    BroadcastingTensor operator/(const BroadcastingTensor& other) const;
 };
 
 #endif

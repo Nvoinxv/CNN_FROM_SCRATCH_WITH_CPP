@@ -2,7 +2,7 @@
 
 float CrossEntropyLoss::forward(
     const BroadcastingTensor& predictions,
-    const BroadcastingTesnor& targets
+    const BroadcastingTensor& targets
 ) {
     if (predictions.shape() != targets.shape()) {
         throw std::invalid_argument(
@@ -19,7 +19,7 @@ float CrossEntropyLoss::forward(
 
 }
 
-float CrossEntropyLoss::backward(
+BroadcastingTensor CrossEntropyLoss::backward(
     const BroadcastingTensor& predictions,
     const BroadcastingTensor& targets
 ) {
