@@ -46,6 +46,112 @@ std::vector<BroadcastingTensor> loadImagesFromFolder(const fs::path& folder_path
     return tensors;
 }
 
+void runMockTraining() {
+    std::cout << "\n=== Running 2D CNN Mock Training from Scratch ===" << std::endl;
+    std::cout << "Task: Classify 6x6 images into Vertical Lines (Class 0) or Horizontal Lines (Class 1)\n" << std::endl;
+
+    // 1. Create Mock Dataset (6x6 pixels, 1 channel)
+    std::vector<float> v1 = {
+        0, 0, 1, 0, 0, 0,
+        0, 0, 1, 0, 0, 0,
+        0, 0, 1, 0, 0, 0,
+        0, 0, 1, 0, 0, 0,
+        0, 0, 1, 0, 0, 0,
+        0, 0, 1, 0, 0, 0
+    };
+    std::vector<float> v2 = {
+        0, 0, 0, 1, 0, 0,
+        0, 0, 0, 1, 0, 0,
+        0, 0, 0, 1, 0, 0,
+        0, 0, 0, 1, 0, 0,
+        0, 0, 0, 1, 0, 0,
+        0, 0, 0, 1, 0, 0
+    };
+    std::vector<float> h1 = {
+        0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0,
+        1, 1, 1, 1, 1, 1,
+        0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0
+    };
+    std::vector<float> h2 = {
+        0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0,
+        1, 1, 1, 1, 1, 1,
+        0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0
+    };
+
+    std::vector<BroadcastingTensor> X = {
+        BroadcastingTensor({1, 6, 6}, v1),
+        BroadcastingTensor({1, 6, 6}, v2),
+        BroadcastingTensor({1, 6, 6}, h1),
+        BroadcastingTensor({1, 6, 6}, h2)
+    };
+
+    std::vector<BroadcastingTensor> y = {
+        BroadcastingTensor({2}, {1.0f, 0.0f}),
+        BroadcastingTensor({2}, {1.0f, 0.0f}),
+        BroadcastingTensor({2}, {0.0f, 1.0f}),
+        BroadcastingTensor({2}, {0.0f, 1.0f})
+    };
+
+    Conv2D conv(1, 2, 3, 1, 0); 
+    MaxPooling2D pool(2, 2);
+    Flatten flatten;
+    Dense dense(8, 2);
+    Softmax softmax;
+
+    float learning_rate = 0.01f;
+    AdamOptimizer optimizer(learning_rate, 0.9f, 0.999f, 1e-8f);
+
+    const int epochs = 60;
+    std::cout << "Starting Training for " << epochs << " epochs..." << std::endl;
+    for (int epoch = 1; epoch <= epochs; ++epoch) {
+        float epoch_loss = 0.0f;
+        for (size_t i = 0; i < X.size(); ++i) {
+            BroadcastingTensor x_conv = conv.forward(X[i]);
+            BroadcastingTensor x_relu = ReLU::forward(x_conv);
+            BroadcastingTensor x_pool = pool.forward(x_relu);
+            BroadcastingTensor x_flat = flatten.forward(x_pool);
+            BroadcastingTensor logits = dense.forward(x_flat);
+            BroadcastingTensor probs = softmax.forward(logits);
+
+            float loss = CrossEntropyLoss::forward(probs, y[i]);
+            epoch_loss += loss;
+
+            BroadcastingTensor grad = CrossEntropyLoss::backward(probs, y[i]);
+            grad = softmax.backward(grad);
+            grad = dense.backward(grad);
+            grad = flatten.backward(grad);
+            grad = pool.backward(grad);
+            grad = ReLU::backward(x_conv, grad);
+            conv.backward(grad);
+
+            std::vector<BroadcastingTensor> params = {
+                conv.weights(), conv.biases(),
+                dense.weights(), dense.biases()
+            };
+            std::vector<BroadcastingTensor> grads = {
+                conv.grad_weights(), conv.grad_biases(),
+                dense.grad_weights(), dense.grad_biases()
+            };
+
+            optimizer.step(params, grads);
+
+            conv.weights() = params[0];
+            conv.biases() = params[1];
+            dense.weights() = params[2];
+            dense.biases() = params[3];
+        }
+        if (epoch % 10 == 0 || epoch == 1) {
+            std::cout << "Epoch " << epoch << " | Loss: " << (epoch_loss / X.size()) << std::endl;
+        }
+    }
+}
+
 void runRealTraining(const std::string& dataset_path) {
     std::cout << "\n=== Running 2D CNN Training with Real Dataset ===" << std::endl;
     std::cout << "Loading images from: " << dataset_path << std::endl;
